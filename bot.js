@@ -1,46 +1,60 @@
-const { Client, GatewayIntentBits, REST, Routes, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionType } = require('discord.js');
+const { Client, GatewayIntentBits,  REST, Routes, SlashCommandBuilder } = require('discord.js');
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-const { YOUR_BOT_TOKEN, YOUR_USER_ID } = require('../qhelper.config.json'); // Replace with your ID
+const { BOT_TOKEN, CLIENT_ID } = require('../qhelper.config.json'); // Replace with your ID
 
-client.on('ready', () => {
+// 🔧 Slash Command Setup (run once or on start)
+const commands = [
+  new SlashCommandBuilder()
+    .setName('qdocs')
+    .setDescription('Show link to Quest documentation')
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName('qdiscussions')
+    .setDescription('Show link to Quest discussions')
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName('qtutorial')
+    .setDescription('Show link to Quest tutorial')
+    .toJSON()
+];
+
+const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
+(async () => {
+  try {
+    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+    console.log('Slash command registered globally.');
+  } catch (error) {
+    console.error('Error registering slash command:', error);
+  }
+})();
+
+// 🧠 Interaction Handling
+client.on('interactionCreate', async interaction => {
+  if (interaction.isChatInputCommand()) {
+    if (interaction.user.bot) return; // Ignore bot commands
+    if (interaction.commandName === 'qdocs') {
+      return await interaction.reply({
+        content: 'Here’s a quick link drop:\n<:quest59:1362982483372539997> 📘 Quest Docs: https://docs.textadventures.co.uk/quest/'
+      });
+    }
+    else if (interaction.commandName === 'qdiscussions') {
+      await interaction.reply({
+        content: 'Here’s a quick link drop:\n<:vivafavicon:1362981590535504074> 💬 Quest Discussions: https://github.com/textadventures/quest/discussions/'
+      });
+    }
+    else if (interaction.commandName === 'qtutorial') {
+      await interaction.reply({
+        content: 'Here’s a quick link drop:\n<:quest:1362982098964578364> 📝 Quest Tutorial: https://docs.textadventures.co.uk/quest/tutorial/'
+      });
+    }
+
+  }
+});
+
+client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-client.on('interactionCreate', async (interaction) => {
-  if (interaction.isChatInputCommand()) {
-    if (interaction.user.id !== YOUR_USER_ID) return;
-
-    if (interaction.commandName === 'questdocs') {
-      const button = new ButtonBuilder()
-        .setCustomId('show_to_everyone')
-        .setLabel('Show to everyone')
-        .setStyle(ButtonStyle.Primary);
-
-      const row = new ActionRowBuilder().addComponents(button);
-
-      await interaction.reply({
-        content: 'Here’s the Quest documentation: https://docs.textadventures.co.uk/quest/',
-        components: [row],
-        ephemeral: true
-      });
-    }
-  }
-
-  // Handle button press
-  if (interaction.isButton()) {
-    if (interaction.customId === 'show_to_everyone') {
-      if (interaction.user.id !== YOUR_USER_ID) {
-        await interaction.reply({ content: 'Only KV can share this publicly.', ephemeral: true });
-        return;
-      }
-
-      await interaction.reply({
-        content: 'Here’s the Quest documentation for everyone: https://docs.textadventures.co.uk/quest/',
-        ephemeral: false
-      });
-    }
-  }
-});
-
-client.login('YOUR_BOT_TOKEN'); // or use environment variable
+client.login(BOT_TOKEN);
